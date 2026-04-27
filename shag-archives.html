@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Archives S.H.A.G. — Répertoire numérique</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ─── Reset ─────────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ─── Design tokens ─────────────────────────────────────────────────────── */
+:root{
+  --ink:#1c1410;--ink2:#4a3f35;--ink3:#8a7a6e;
+  --parch:#f7f2e8;--parch2:#ede6d6;--parch3:#ddd4c0;
+  --rust:#8b3a1e;--rust2:#c4522a;--rust3:#f2ddd5;
+  --teal:#1e5c52;--teal2:#d0e8e4;
+  --gold:#a07808;--gold2:#f5e8b0;
+  --shadow:0 2px 12px rgba(28,20,16,.10);
+  --shadow-lg:0 6px 32px rgba(28,20,16,.16);
+  --r:3px;
+  --ff:\'EB Garamond\',Georgia,serif;
+  --mono:\'DM Mono\',\'Courier New\',monospace;
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+
+/* ─── Body ───────────────────────────────────────────────────────────────── */
+html{scroll-behavior:smooth}
+body{font-family:var(--ff);background:var(--parch);color:var(--ink);line-height:1.65;font-size:17px;min-height:100vh}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+.sa-header{
+  background:var(--ink);color:var(--parch);
+  padding:1.2rem 2rem;
+  display:flex;align-items:center;gap:2rem;
+  border-bottom:3px solid var(--rust);
+  position:sticky;top:0;z-index:200
+}
+.sa-brand{display:flex;flex-direction:column;gap:.1rem}
+.sa-eyebrow{font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--rust2)}
+.sa-title{font-size:1.35rem;font-weight:500;letter-spacing:-.01em;line-height:1.1}
+.sa-meta{margin-left:auto;font-size:.82rem;font-style:italic;color:#7a6a5a}
+.sa-stats{display:flex;gap:1.5rem;margin-left:auto;flex-shrink:0}
+.sa-stat{display:flex;flex-direction:column;align-items:center}
+.sa-stat-n{font-family:var(--mono);font-size:1rem;font-weight:500;color:var(--rust2);line-height:1}
+.sa-stat-l{font-family:var(--mono);font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:#7a6a5a;margin-top:.15rem}
+
+/* ─── Layout ─────────────────────────────────────────────────────────────── */
+.sa-app{display:grid;grid-template-columns:290px 1fr;min-height:calc(100vh - 61px)}
+
+/* ─── Sidebar ────────────────────────────────────────────────────────────── */
+.sa-sidebar{
+  background:var(--parch2);border-right:1px solid var(--parch3);
+  padding:1.25rem 1.1rem;
+  height:calc(100vh - 61px);overflow-y:auto;
+  position:sticky;top:61px
+}
+
+/* Search */
+.sa-search-wrap{position:relative;margin-bottom:1.4rem}
+.sa-search-wrap input{
+  width:100%;padding:.6rem .75rem .6rem 2.1rem;
+  font-family:var(--ff);font-size:.95rem;
+  background:var(--parch);border:1.5px solid var(--parch3);border-radius:var(--r);
+  color:var(--ink);outline:none;
+  transition:border-color .15s,box-shadow .15s
+}
+.sa-search-wrap input:focus{border-color:var(--rust);box-shadow:0 0 0 3px rgba(139,58,30,.12)}
+.sa-search-wrap input::placeholder{color:var(--ink3);font-style:italic}
+.sa-search-icon{position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--ink3);pointer-events:none;font-size:.9rem}
+
+/* Filter block */
+.sa-filter{margin-bottom:1.3rem}
+.sa-flabel{
+  font-family:var(--mono);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);
+  margin-bottom:.45rem;display:flex;align-items:center;gap:.4rem
+}
+.sa-flabel::after{content:'';flex:1;height:1px;background:var(--parch3)}
+
+/* Date range */
+.sa-date-inputs{display:flex;gap:.4rem;margin-bottom:.5rem}
+.sa-date-inputs input{
+  width:50%;padding:.3rem .5rem;text-align:center;
+  font-family:var(--mono);font-size:.8rem;
+  background:var(--parch);border:1.5px solid var(--parch3);border-radius:var(--r);
+  color:var(--ink);outline:none;transition:border-color .15s
+}
+.sa-date-inputs input:focus{border-color:var(--rust)}
+.sa-histo{
+  height:40px;display:flex;align-items:flex-end;gap:1px;
+  background:var(--parch);border:1px solid var(--parch3);border-radius:var(--r);
+  padding:3px 3px 0;overflow:hidden;margin-bottom:.3rem
+}
+.sa-hbar{
+  flex:1;background:var(--rust3);border-radius:1px 1px 0 0;
+  cursor:pointer;transition:background .12s;position:relative
+}
+.sa-hbar.on{background:var(--rust)}
+.sa-hbar:hover{background:var(--rust2)}
+.sa-histo-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.58rem;color:var(--ink3)}
+
+/* Autocomplete */
+.sa-ac{position:relative;margin-bottom:.4rem}
+.sa-ac input{
+  width:100%;padding:.38rem .6rem;
+  font-family:var(--ff);font-size:.88rem;
+  background:var(--parch);border:1.5px solid var(--parch3);border-radius:var(--r);
+  color:var(--ink);outline:none;transition:border-color .15s
+}
+.sa-ac input:focus{border-color:var(--rust)}
+.sa-ac input::placeholder{color:var(--ink3);font-style:italic}
+.sa-dropdown{
+  position:absolute;top:calc(100% + 2px);left:0;right:0;
+  background:var(--parch);border:1.5px solid var(--rust);border-radius:var(--r);
+  max-height:190px;overflow-y:auto;z-index:300;box-shadow:var(--shadow);display:none
+}
+.sa-dropdown.open{display:block}
+.sa-ditem{
+  padding:.38rem .65rem;font-size:.84rem;cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;gap:.5rem;
+  border-bottom:1px solid var(--parch2);transition:background .1s
+}
+.sa-ditem:last-child{border-bottom:none}
+.sa-ditem:hover{background:var(--rust3)}
+.sa-ditem-l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sa-ditem-c{font-family:var(--mono);font-size:.62rem;color:var(--ink3);flex-shrink:0}
+
+/* Tags */
+.sa-tags{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.35rem;min-height:4px}
+.sa-tag{
+  display:inline-flex;align-items:center;gap:.25rem;
+  padding:.18rem .45rem;background:var(--rust);color:var(--parch);
+  border-radius:999px;font-size:.7rem;font-family:var(--mono);
+  max-width:200px;cursor:pointer;transition:background .12s
+}
+.sa-tag:hover{background:var(--rust2)}
+.sa-tag-l{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sa-tag-x{flex-shrink:0;opacity:.75;font-size:.65rem}
+
+/* Level chips */
+.sa-chips{display:flex;flex-wrap:wrap;gap:.28rem}
+.sa-chip{
+  padding:.22rem .55rem;border:1.5px solid var(--parch3);border-radius:999px;
+  font-family:var(--mono);font-size:.65rem;letter-spacing:.03em;
+  cursor:pointer;background:var(--parch);color:var(--ink2);
+  transition:all .12s;user-select:none
+}
+.sa-chip:hover{border-color:var(--rust);color:var(--rust)}
+.sa-chip.on{background:var(--rust);border-color:var(--rust);color:var(--parch)}
+
+/* Reset btn */
+.sa-reset{
+  width:100%;margin-top:.9rem;padding:.4rem;
+  font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;
+  background:transparent;border:1.5px solid var(--parch3);border-radius:var(--r);
+  color:var(--ink3);cursor:pointer;transition:all .15s
+}
+.sa-reset:hover{border-color:var(--rust);color:var(--rust)}
+
+/* ─── Main ───────────────────────────────────────────────────────────────── */
+.sa-main{padding:1.4rem 1.8rem;overflow-y:auto}
+
+/* Results bar */
+.sa-rbar{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:1.1rem;padding-bottom:.7rem;border-bottom:1px solid var(--parch3)}
+.sa-count{font-family:var(--mono);font-size:.75rem;color:var(--ink3)}
+.sa-count strong{color:var(--rust);font-size:1.05rem;font-weight:500}
+.sa-sort{display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:.65rem;color:var(--ink3)}
+.sa-sort select{padding:.2rem .45rem;font-family:var(--mono);font-size:.65rem;background:var(--parch);border:1px solid var(--parch3);border-radius:var(--r);color:var(--ink2);cursor:pointer;outline:none}
+
+/* Loading */
+.sa-loading{text-align:center;padding:4rem 2rem;color:var(--ink3);font-style:italic}
+.sa-spinner{display:inline-block;width:22px;height:22px;border:2px solid var(--parch3);border-top-color:var(--rust);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:.75rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Cards */
+.sa-grid{display:flex;flex-direction:column;gap:.55rem}
+.sa-card{
+  background:var(--parch);border:1px solid var(--parch3);border-radius:var(--r);
+  padding:.9rem 1.1rem;border-left:3px solid transparent;
+  transition:border-color .15s,box-shadow .15s,transform .1s;
+  animation:fadein .18s var(--ease) both
+}
+@keyframes fadein{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.sa-card:hover{border-left-color:var(--rust);box-shadow:var(--shadow);transform:translateX(2px)}
+.sa-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;margin-bottom:.28rem}
+.sa-card-title{font-size:.98rem;font-weight:500;line-height:1.35;color:var(--ink)}
+.sa-card-title mark{background:var(--gold2);color:var(--ink);border-radius:1px;padding:0 2px}
+.sa-card-badges{display:flex;align-items:center;gap:.35rem;flex-shrink:0}
+.sa-badge{font-family:var(--mono);font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;padding:.13rem .4rem;border-radius:999px;border:1px solid;white-space:nowrap}
+.b-file    {background:#e8f0fe;border-color:#93b4f7;color:#1a3a8f}
+.b-item    {background:#fef3c7;border-color:#f6c84b;color:#7c5200}
+.b-series  {background:#d6efe1;border-color:#5dab7e;color:#1a5c38}
+.b-subseries{background:#ede9fe;border-color:#a78bfa;color:#4c1d95}
+.b-subfonds{background:#fee2e2;border-color:#f87171;color:#7f1d1d}
+.sa-date{font-family:var(--mono);font-size:.68rem;color:var(--gold);font-weight:500}
+.sa-uid{font-family:var(--mono);font-size:.66rem;color:var(--ink3);margin-bottom:.3rem}
+.sa-serie{font-size:.78rem;color:var(--ink3);font-style:italic;margin-bottom:.28rem}
+.sa-scope{font-size:.83rem;color:var(--ink2);margin-top:.3rem;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sa-ctags{display:flex;flex-wrap:wrap;gap:.22rem;margin-top:.5rem}
+.sa-ctag{
+  font-size:.67rem;font-family:var(--mono);
+  padding:.08rem .38rem;border-radius:999px;
+  background:var(--parch2);color:var(--ink3);border:1px solid var(--parch3);
+  cursor:pointer;transition:all .12s;white-space:nowrap;
+  max-width:170px;overflow:hidden;text-overflow:ellipsis
+}
+.sa-ctag:hover{background:var(--rust3);border-color:var(--rust);color:var(--rust)}
+.sa-ctag.geo{background:var(--teal2);border-color:var(--teal);color:var(--teal)}
+.sa-ctag.per{background:var(--gold2);border-color:var(--gold);color:#5a3c00}
+
+/* Pagination */
+.sa-pages{display:flex;justify-content:center;align-items:center;gap:.3rem;margin-top:1.8rem;padding-top:1.3rem;border-top:1px solid var(--parch3);flex-wrap:wrap}
+.sa-pbt{min-width:2rem;height:2rem;padding:0 .45rem;font-family:var(--mono);font-size:.7rem;background:var(--parch);border:1.5px solid var(--parch3);border-radius:var(--r);color:var(--ink2);cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center}
+.sa-pbt:hover{border-color:var(--rust);color:var(--rust)}
+.sa-pbt.on{background:var(--rust);border-color:var(--rust);color:var(--parch)}
+.sa-pbt:disabled{opacity:.3;cursor:default}
+.sa-pdots{font-family:var(--mono);font-size:.7rem;color:var(--ink3);padding:0 .2rem}
+
+/* Empty */
+.sa-empty{text-align:center;padding:3.5rem 2rem;color:var(--ink3)}
+.sa-empty-icon{font-size:2rem;margin-bottom:.5rem}
+
+/* Responsive */
+@media(max-width:780px){
+  .sa-app{grid-template-columns:1fr}
+  .sa-sidebar{height:auto;position:static;border-right:none;border-bottom:1px solid var(--parch3)}
+  .sa-header{flex-direction:column;gap:.4rem;align-items:flex-start}
+  .sa-stats{margin-left:0}
+}
+</style>
+</head>
+<body>
+
+<header class="sa-header">
+  <div class="sa-brand">
+    <span class="sa-eyebrow">FRSHAG045</span>
+    <span class="sa-title">Archives de la S.H.A.G.</span>
+  </div>
+  <div class="sa-stats" id="hdr-stats" style="display:none">
+    <div class="sa-stat"><span class="sa-stat-n" id="stat-total">—</span><span class="sa-stat-l">documents</span></div>
+    <div class="sa-stat"><span class="sa-stat-n" id="stat-lieux">890</span><span class="sa-stat-l">lieux</span></div>
+    <div class="sa-stat"><span class="sa-stat-n" id="stat-sujets">1 595</span><span class="sa-stat-l">sujets</span></div>
+    <div class="sa-stat"><span class="sa-stat-n" id="stat-personnes">743</span><span class="sa-stat-l">personnes</span></div>
+  </div>
+</header>
+
+<div class="sa-app">
+
+  <!-- ── Sidebar ────────────────────────────────────────────────── -->
+  <aside class="sa-sidebar">
+
+    <div class="sa-search-wrap">
+      <span class="sa-search-icon">⌕</span>
+      <input id="sa-txt" type="search" placeholder="Titre, description, identifiant…" autocomplete="off">
+    </div>
+
+    <div class="sa-filter">
+      <div class="sa-flabel">Période</div>
+      <div class="sa-date-inputs">
+        <input type="number" id="sa-dmin" placeholder="Début">
+        <input type="number" id="sa-dmax" placeholder="Fin">
+      </div>
+      <div class="sa-histo" id="sa-histo"></div>
+      <div class="sa-histo-labels"><span id="hl-min">—</span><span id="hl-max">—</span></div>
+    </div>
+
+    <div class="sa-filter">
+      <div class="sa-flabel">Lieu géographique</div>
+      <div class="sa-ac">
+        <input id="sa-geo-in" type="text" placeholder="Commune, lieu…" autocomplete="off">
+        <div class="sa-dropdown" id="sa-geo-dd"></div>
+      </div>
+      <div class="sa-tags" id="sa-geo-tags"></div>
+    </div>
+
+    <div class="sa-filter">
+      <div class="sa-flabel">Thème</div>
+      <div class="sa-ac">
+        <input id="sa-sub-in" type="text" placeholder="Sujet, thème…" autocomplete="off">
+        <div class="sa-dropdown" id="sa-sub-dd"></div>
+      </div>
+      <div class="sa-tags" id="sa-sub-tags"></div>
+    </div>
+
+    <div class="sa-filter">
+      <div class="sa-flabel">Personne</div>
+      <div class="sa-ac">
+        <input id="sa-per-in" type="text" placeholder="Nom, prénom…" autocomplete="off">
+        <div class="sa-dropdown" id="sa-per-dd"></div>
+      </div>
+      <div class="sa-tags" id="sa-per-tags"></div>
+    </div>
+
+    <div class="sa-filter">
+      <div class="sa-flabel">Niveau</div>
+      <div class="sa-chips" id="sa-levels"></div>
+    </div>
+
+    <button class="sa-reset" id="sa-reset">↺ Réinitialiser les filtres</button>
+
+  </aside>
+
+  <!-- ── Main ───────────────────────────────────────────────────── -->
+  <main class="sa-main">
+    <div class="sa-loading" id="sa-loading">
+      <div><div class="sa-spinner"></div></div>
+      Chargement des archives…
+    </div>
+
+    <div id="sa-rbar" style="display:none" class="sa-rbar">
+      <div class="sa-count">
+        <strong id="sa-cnt">0</strong> résultat<span id="sa-plur"></span>
+        <span id="sa-ctot" style="font-size:.7rem;color:var(--ink3)"></span>
+      </div>
+      <div class="sa-sort">
+        Trier par
+        <select id="sa-sort">
+          <option value="rel">Pertinence</option>
+          <option value="da">Date ↑</option>
+          <option value="dd">Date ↓</option>
+          <option value="ta">Titre A→Z</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sa-grid" id="sa-grid"></div>
+    <div class="sa-pages" id="sa-pages"></div>
+  </main>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   CONFIGURATION — modifier uniquement cette section
+═══════════════════════════════════════════════════════════════════ */
+const DATA_BASE_URL = 'https://VOTRE-CDN.example.com/shag-data';
+/* Exemple GitHub Pages : 'https://monorg.github.io/shag-data'    */
+/* Exemple Netlify      : 'https://shag-data.netlify.app'         */
+/* Exemple S3           : 'https://s3.eu-west-3.amazonaws.com/shag'*/
+
+/* ═══════════════════════════════════════════════════════════════════
+   APP
+═══════════════════════════════════════════════════════════════════ */
+const BASE = DATA_BASE_URL.replace(/\/$/, '');
+const URLS = {
+  archive:  `${BASE}/archive.json`,
+  subjects: `${BASE}/filter_subjects.json`,
+  geonames: `${BASE}/filter_geonames.json`,
+  persons:  `${BASE}/filter_persons.json`,
+  levels:   `${BASE}/filter_levels.json`,
+  dates:    `${BASE}/filter_dates.json`,
+};
+
+const PER = 25;
+let DB  = {};
+const S = {
+  txt:'', dmin:null, dmax:null,
+  geo:new Set(), sub:new Set(), per:new Set(), lvl:new Set(),
+  sort:'rel', page:1
+};
+
+const LLABELS = {file:'Dossier',item:'Article',subseries:'Sous-série',series:'Série',subfonds:'Sous-fonds'};
+
+/* ── Load ────────────────────────────────────────────────────── */
+async function boot() {
+  try {
+    const [archive,subjects,geonames,persons,levels,dates] = await Promise.all(
+      Object.values(URLS).map(u => fetch(u).then(r => { if(!r.ok) throw new Error(u); return r.json(); }))
+    );
+    DB = {archive,subjects,geonames,persons,levels,dates};
+    init();
+    run();
+    document.getElementById('sa-loading').style.display = 'none';
+    document.getElementById('sa-rbar').style.display = '';
+    const hdrStats = document.getElementById('hdr-stats');
+    hdrStats.style.display = '';
+    document.getElementById('stat-total').textContent = archive.length.toLocaleString('fr');
+  } catch(e) {
+    document.getElementById('sa-loading').innerHTML =
+      `<p style="color:var(--rust);font-style:italic">Erreur de chargement.<br>
+       <small>Vérifiez que DATA_BASE_URL est correct et que les fichiers JSON sont accessibles (CORS).</small><br>
+       <small style="font-family:var(--mono);font-size:.65rem">${e.message}</small></p>`;
+  }
+}
+
+/* ── Init UI ─────────────────────────────────────────────────── */
+function init() {
+  buildHisto();
+  buildLevels();
+
+  const dmin = Math.max(DB.dates.min_year, 1000);
+  const dmax = DB.dates.max_year;
+  el('hl-min').textContent = dmin;
+  el('hl-max').textContent = dmax;
+  el('sa-dmin').placeholder = dmin;
+  el('sa-dmax').placeholder = dmax;
+
+  on('sa-txt',   'input',  e => { S.txt = e.target.value.trim().toLowerCase(); S.page=1; run(); });
+  on('sa-dmin',  'input',  () => { S.dmin = +el('sa-dmin').value||null; S.dmax = +el('sa-dmax').value||null; S.page=1; hilight(); run(); });
+  on('sa-dmax',  'input',  () => { S.dmin = +el('sa-dmin').value||null; S.dmax = +el('sa-dmax').value||null; S.page=1; hilight(); run(); });
+  on('sa-sort',  'change', e => { S.sort = e.target.value; S.page=1; run(); });
+  on('sa-reset', 'click',  reset);
+
+  ac('sa-geo-in','sa-geo-dd', DB.geonames, 'geo','sa-geo-tags');
+  ac('sa-sub-in','sa-sub-dd', DB.subjects,  'sub','sa-sub-tags');
+  ac('sa-per-in','sa-per-dd', DB.persons,   'per','sa-per-tags');
+}
+
+/* ── Histogram ───────────────────────────────────────────────── */
+function buildHisto() {
+  const dist    = DB.dates.distribution;
+  const decades = Object.keys(dist).map(Number).filter(d=>d>=1000).sort((a,b)=>a-b);
+  const maxv    = Math.max(...decades.map(d=>dist[String(d)]));
+  const c       = el('sa-histo');
+  c.innerHTML   = '';
+  decades.forEach(d => {
+    const h  = Math.max(3, Math.round((dist[String(d)]/maxv)*36));
+    const b  = mk('div','sa-hbar on');
+    b.style.height = h+'px';
+    b.title  = `${d}s : ${dist[String(d)]} doc.`;
+    b.dataset.d = d;
+    b.addEventListener('click', () => {
+      el('sa-dmin').value = d; el('sa-dmax').value = d+9;
+      S.dmin=d; S.dmax=d+9; S.page=1; hilight(); run();
+    });
+    c.appendChild(b);
+  });
+}
+function hilight() {
+  document.querySelectorAll('.sa-hbar').forEach(b => {
+    const d = +b.dataset.d;
+    b.classList.toggle('on', (!S.dmin||d+9>=S.dmin) && (!S.dmax||d<=S.dmax));
+  });
+}
+
+/* ── Level chips ─────────────────────────────────────────────── */
+function buildLevels() {
+  const c = el('sa-levels');
+  DB.levels.forEach(({value,count}) => {
+    const ch = mk('div','sa-chip');
+    ch.textContent = `${LLABELS[value]||value} (${count.toLocaleString('fr')})`;
+    ch.dataset.v   = value;
+    ch.addEventListener('click', () => {
+      S.lvl.has(value) ? S.lvl.delete(value) : S.lvl.add(value);
+      ch.classList.toggle('on'); S.page=1; run();
+    });
+    c.appendChild(ch);
+  });
+}
+
+/* ── Autocomplete ────────────────────────────────────────────── */
+function ac(inId, ddId, data, key, tagsId) {
+  const inp = el(inId), dd = el(ddId);
+  let tmr;
+  inp.addEventListener('input', () => {
+    clearTimeout(tmr);
+    tmr = setTimeout(() => {
+      const q = inp.value.trim().toLowerCase();
+      if (!q) { dd.classList.remove('open'); return; }
+      const hits = data.filter(d => !S[key].has(d.value) && d.value.toLowerCase().includes(q)).slice(0,12);
+      dd.innerHTML = '';
+      if (!hits.length) { dd.classList.remove('open'); return; }
+      hits.forEach(({value,count}) => {
+        const item = mk('div','sa-ditem');
+        item.innerHTML = `<span class="sa-ditem-l">${esc(value)}</span><span class="sa-ditem-c">${count.toLocaleString('fr')}</span>`;
+        item.addEventListener('mousedown', e => {
+          e.preventDefault();
+          addTag(key, tagsId, value);
+          inp.value=''; dd.classList.remove('open');
+        });
+        dd.appendChild(item);
+      });
+      dd.classList.add('open');
+    }, 140);
+  });
+  inp.addEventListener('keydown', e => { if(e.key==='Escape'){dd.classList.remove('open');inp.value='';} });
+  document.addEventListener('click', e => { if(!inp.contains(e.target)&&!dd.contains(e.target)) dd.classList.remove('open'); });
+}
+
+function addTag(key, tagsId, value) {
+  if (S[key].has(value)) return;
+  S[key].add(value); S.page=1;
+  renderTags(key, tagsId); run();
+}
+function removeTag(key, tagsId, value) {
+  S[key].delete(value); S.page=1;
+  renderTags(key, tagsId); run();
+}
+function renderTags(key, tagsId) {
+  const c = el(tagsId);
+  c.innerHTML = '';
+  S[key].forEach(v => {
+    const t = mk('div','sa-tag');
+    t.title = v;
+    t.innerHTML = `<span class="sa-tag-l">${esc(v)}</span><span class="sa-tag-x">✕</span>`;
+    t.addEventListener('click', () => removeTag(key, tagsId, v));
+    c.appendChild(t);
+  });
+}
+
+/* ── Reset ───────────────────────────────────────────────────── */
+function reset() {
+  S.txt=''; S.dmin=null; S.dmax=null;
+  S.geo.clear(); S.sub.clear(); S.per.clear(); S.lvl.clear();
+  S.sort='rel'; S.page=1;
+  el('sa-txt').value=''; el('sa-dmin').value=''; el('sa-dmax').value='';
+  ['sa-geo-in','sa-sub-in','sa-per-in'].forEach(id=>el(id).value='');
+  ['sa-geo-tags','sa-sub-tags','sa-per-tags'].forEach(id=>{ el(id).innerHTML=''; });
+  document.querySelectorAll('.sa-chip').forEach(c=>c.classList.remove('on'));
+  document.querySelectorAll('.sa-hbar').forEach(b=>b.classList.add('on'));
+  el('sa-sort').value='rel';
+  run();
+}
+
+/* ── Filter + sort ───────────────────────────────────────────── */
+function run() {
+  let res = DB.archive;
+  if (S.txt) res = res.filter(r => r.search_text.includes(S.txt));
+  if (S.dmin) res = res.filter(r => !r.date_end   || r.date_end   >= S.dmin);
+  if (S.dmax) res = res.filter(r => !r.date_start || r.date_start <= S.dmax);
+  if (S.geo.size) { const s=S.geo; res = res.filter(r=>r.geonames.some(g=>s.has(g))); }
+  if (S.sub.size) { const s=S.sub; res = res.filter(r=>r.subjects.some(x=>s.has(x))); }
+  if (S.per.size) { const s=S.per; res = res.filter(r=>r.persons.some(p=>s.has(p))); }
+  if (S.lvl.size) res = res.filter(r=>S.lvl.has(r.level));
+
+  switch(S.sort){
+    case 'da': res=[...res].sort((a,b)=>(a.date_start||9999)-(b.date_start||9999)); break;
+    case 'dd': res=[...res].sort((a,b)=>(b.date_start||0)-(a.date_start||0)); break;
+    case 'ta': res=[...res].sort((a,b)=>(a.unittitle||'').localeCompare(b.unittitle||'','fr')); break;
+  }
+  render(res);
+}
+
+/* ── Render ──────────────────────────────────────────────────── */
+function render(res) {
+  const total = res.length;
+  const start = (S.page-1)*PER;
+  const page  = res.slice(start, start+PER);
+  const pages = Math.ceil(total/PER);
+
+  el('sa-cnt').textContent  = total.toLocaleString('fr');
+  el('sa-plur').textContent = total>1?'s':'';
+  el('sa-ctot').textContent = total < DB.archive.length ? ` sur ${DB.archive.length.toLocaleString('fr')}` : '';
+
+  const grid = el('sa-grid');
+  grid.innerHTML = '';
+  if (!page.length) {
+    grid.innerHTML = '<div class="sa-empty"><div class="sa-empty-icon">∅</div><p style="font-style:italic">Aucun document ne correspond à ces critères.</p></div>';
+  } else {
+    page.forEach((r,i) => grid.appendChild(card(r,i)));
+  }
+  renderPages(pages);
+}
+
+function card(r, i) {
+  const d = mk('div','sa-card');
+  d.style.animationDelay = (i*.018)+'s';
+  const levelCls = `b-${r.level}`;
+  const levelTxt = LLABELS[r.level]||r.level;
+  const title    = hi(r.unittitle||r.unitid||r.id);
+  const dateStr  = r.unitdate||(r.date_start? r.date_start+(r.date_end&&r.date_end!==r.date_start?'–'+r.date_end:'') :'');
+  const serieStr = r.serie_title&&r.serie_title!==r.unittitle ? r.serie_title : '';
+  const scope    = r.scopecontent ? hi(r.scopecontent) : '';
+
+  const gTags = r.geonames.slice(0,3).map(g=>`<span class="sa-ctag geo" data-k="geo" data-v="${ea(g)}" title="${esc(g)}">${esc(sh(g))}</span>`).join('');
+  const sTags = r.subjects.slice(0,2).map(s=>`<span class="sa-ctag" data-k="sub" data-v="${ea(s)}" title="${esc(s)}">${esc(sh(s))}</span>`).join('');
+  const pTags = r.persons.slice(0,2).map(p=>`<span class="sa-ctag per" data-k="per" data-v="${ea(p)}" title="${esc(p)}">${esc(sh(p))}</span>`).join('');
+  const hasTags = gTags||sTags||pTags;
+
+  d.innerHTML = `
+    <div class="sa-card-top">
+      <div class="sa-card-title">${title}</div>
+      <div class="sa-card-badges">
+        ${dateStr?`<span class="sa-date">${esc(dateStr)}</span>`:''}
+        <span class="sa-badge ${levelCls}">${levelTxt}</span>
+      </div>
+    </div>
+    <div class="sa-uid">${esc(r.unitid)}</div>
+    ${serieStr?`<div class="sa-serie">${esc(serieStr)}</div>`:''}
+    ${scope?`<div class="sa-scope">${scope}</div>`:''}
+    ${hasTags?`<div class="sa-ctags">${gTags}${sTags}${pTags}</div>`:''}
+  `;
+
+  const MAP_TAGS = {geo:'sa-geo-tags', sub:'sa-sub-tags', per:'sa-per-tags'};
+  d.querySelectorAll('.sa-ctag[data-k]').forEach(t => {
+    t.addEventListener('click', e => {
+      e.stopPropagation();
+      addTag(t.dataset.k, MAP_TAGS[t.dataset.k], t.dataset.v);
+    });
+  });
+  return d;
+}
+
+function renderPages(pages) {
+  const c = el('sa-pages'); c.innerHTML = '';
+  if (pages<=1) return;
+  const cur = S.page;
+  const pbt = (lbl, pg, active=false, dis=false) => {
+    const b = mk('button','sa-pbt'+(active?' on':''));
+    b.textContent=lbl; b.disabled=dis;
+    if(!dis&&!active) b.addEventListener('click',()=>{ S.page=pg; run(); window.scrollTo({top:0,behavior:'smooth'}); });
+    c.appendChild(b);
+  };
+  const dot = () => { const s=mk('span','sa-pdots'); s.textContent='…'; c.appendChild(s); };
+
+  pbt('«',1,false,cur===1); pbt('‹',cur-1,false,cur===1);
+  let s=Math.max(1,cur-2), e=Math.min(pages,cur+2);
+  if(s>1){pbt('1',1); if(s>2) dot();}
+  for(let p=s;p<=e;p++) pbt(p,p,p===cur);
+  if(e<pages){if(e<pages-1) dot(); pbt(pages,pages);}
+  pbt('›',cur+1,false,cur===pages); pbt('»',pages,false,cur===pages);
+}
+
+/* ── Utils ───────────────────────────────────────────────────── */
+const el  = id => document.getElementById(id);
+const mk  = (tag,cls) => { const e=document.createElement(tag); if(cls) e.className=cls; return e; };
+const on  = (id,ev,fn) => el(id).addEventListener(ev,fn);
+const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const ea  = s => String(s??'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const sh  = (s,n=32) => s.length>n?s.slice(0,n)+'…':s;
+function hi(txt) {
+  if (!S.txt||!txt) return esc(txt||'');
+  const q = S.txt.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return esc(txt).replace(new RegExp(`(${q})`,'gi'),'<mark>$1</mark>');
+}
+
+boot();
+</script>
+</body>
+</html>
