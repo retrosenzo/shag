@@ -1,0 +1,116 @@
+<!--
+  ╔══════════════════════════════════════════════════════════════════════════╗
+  ║  SHAG Archives — Bloc HTML personnalisé WordPress                        ║
+  ║                                                                          ║
+  ║  Comment l'utiliser :                                                    ║
+  ║  1. Dans WordPress, ouvrez la page ou l'article cible                   ║
+  ║  2. Ajoutez un bloc "HTML personnalisé" (Custom HTML)                   ║
+  ║  3. Collez l'intégralité de ce fichier                                   ║
+  ║  4. Modifiez DATA_CDN_URL ci-dessous avec votre vraie URL CDN            ║
+  ║  5. Modifiez APP_URL avec l'URL de votre shag-archives.html             ║
+  ║  6. Publiez                                                              ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
+-->
+
+<!-- ══ CONFIGURATION — modifier ces deux lignes uniquement ══════════════ -->
+<script>
+//var SHAG_APP_URL  = 'https://VOTRE-CDN.example.com/shag-archives.html';
+var SHAG_APP_URL  = 'https://retrosenzo.github.io/shag/shag-archives.html';
+/* URL complète de la page shag-archives.html hébergée sur votre CDN       */
+/* Ex: 'https://monorg.github.io/shag-data/shag-archives.html'             */
+</script>
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+<div id="shag-wp-root"></div>
+
+<style>
+/* Conteneur WordPress — adapté à la largeur de la zone de contenu */
+#shag-wp-root {
+  width: 100%;
+  min-height: 600px;
+  position: relative;
+  font-family: inherit;
+}
+
+/* Annule le max-width du thème pour les pages "full-width" */
+#shag-wp-root .shag-frame {
+  width: 100%;
+  height: 85vh;
+  min-height: 600px;
+  border: none;
+  border-radius: 4px;
+  box-shadow: 0 2px 16px rgba(0,0,0,.10);
+  display: block;
+}
+
+/* Spinner de chargement avant que l'iframe soit prête */
+#shag-wp-root .shag-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #f7f2e8;
+  border-radius: 4px;
+  pointer-events: none;
+  transition: opacity .3s;
+}
+#shag-wp-root .shag-loader.hidden { opacity: 0; }
+#shag-wp-root .shag-spinner {
+  width: 28px; height: 28px;
+  border: 2px solid #ddd4c0;
+  border-top-color: #8b3a1e;
+  border-radius: 50%;
+  animation: shag-spin .7s linear infinite;
+}
+@keyframes shag-spin { to { transform: rotate(360deg); } }
+#shag-wp-root .shag-loader p {
+  font-size: .9rem;
+  color: #8a7a6e;
+  font-style: italic;
+  margin: 0;
+}
+</style>
+
+<script>
+(function() {
+  var root = document.getElementById('shag-wp-root');
+
+  /* ── Loader ─────────────────────────────────────────────────────────── */
+  var loader = document.createElement('div');
+  loader.className = 'shag-loader';
+  loader.innerHTML = '<div class="shag-spinner"></div><p>Chargement des archives…</p>';
+  root.appendChild(loader);
+
+  /* ── Iframe ─────────────────────────────────────────────────────────── */
+  var frame = document.createElement('iframe');
+  frame.className = 'shag-frame';
+  frame.src = SHAG_APP_URL;
+  frame.title = 'Archives de la Société Historique et Archéologique du Giennois';
+  frame.setAttribute('loading', 'lazy');
+  frame.setAttribute('allow', '');
+
+  /* Masquer le loader dès que la page est chargée */
+  frame.addEventListener('load', function() {
+    loader.classList.add('hidden');
+    setTimeout(function() { loader.style.display = 'none'; }, 350);
+  });
+
+  frame.addEventListener('error', function() {
+    loader.innerHTML = '<p style="color:#8b3a1e">Erreur de chargement.<br><small>Vérifiez que APP_URL est correcte.</small></p>';
+  });
+
+  root.appendChild(frame);
+
+  /* ── Hauteur dynamique ──────────────────────────────────────────────── */
+  /* L'iframe se redimensionne pour occuper 85% de la hauteur de fenêtre  */
+  function resize() {
+    frame.style.height = Math.max(600, Math.round(window.innerHeight * .85)) + 'px';
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+})();
+</script>
