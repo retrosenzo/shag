@@ -191,7 +191,6 @@ body{font-family:var(--ff);background:var(--parch);color:var(--ink);line-height:
 .b-file    {background:#e8f0fe;border-color:#93b4f7;color:#1a3a8f}
 .b-item    {background:#fef3c7;border-color:#f6c84b;color:#7c5200}
 .b-series  {background:#d6efe1;border-color:#5dab7e;color:#1a5c38}
-.b-subseries{background:#ede9fe;border-color:#a78bfa;color:#4c1d95}
 .b-subfonds{background:#fee2e2;border-color:#f87171;color:#7f1d1d}
 .sa-date{font-family:var(--mono);font-size:.68rem;color:var(--gold);font-weight:500}
 .sa-uid{font-family:var(--mono);font-size:.66rem;color:var(--ink3);margin-bottom:.3rem}
@@ -360,7 +359,7 @@ const S = {
   sort:'rel', page:1
 };
 
-const LLABELS = {file:'Dossier',item:'Article',subseries:'Sous-série',series:'Série',subfonds:'Sous-fonds'};
+const LLABELS = {file:'Dossier',item:'Article',series:'Série',subfonds:'Sous-fonds'};
 
 /* ── Load ────────────────────────────────────────────────────── */
 async function boot() {
@@ -375,7 +374,10 @@ async function boot() {
     document.getElementById('sa-rbar').style.display = '';
     const hdrStats = document.getElementById('hdr-stats');
     hdrStats.style.display = '';
-    document.getElementById('stat-total').textContent = archive.length.toLocaleString('fr');
+    document.getElementById('stat-total').textContent     = archive.length.toLocaleString('fr');
+    document.getElementById('stat-lieux').textContent      = geonames.length.toLocaleString('fr');
+    document.getElementById('stat-sujets').textContent     = subjects.length.toLocaleString('fr');
+    document.getElementById('stat-personnes').textContent  = persons.length.toLocaleString('fr');
   } catch(e) {
     document.getElementById('sa-loading').innerHTML =
       `<p style="color:var(--rust);font-style:italic">Erreur de chargement.<br>
