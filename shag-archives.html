@@ -78,27 +78,27 @@ body{font-family:var(--ff);background:var(--parch);color:var(--ink);line-height:
 }
 .sa-flabel::after{content:'';flex:1;height:1px;background:var(--parch3)}
 
-/* Date range */
-.sa-date-inputs{display:flex;gap:.4rem;margin-bottom:.5rem}
-.sa-date-inputs input{
-  width:50%;padding:.3rem .5rem;text-align:center;
-  font-family:var(--mono);font-size:.8rem;
-  background:var(--parch);border:1.5px solid var(--parch3);border-radius:var(--r);
-  color:var(--ink);outline:none;transition:border-color .15s
+/* Tree navigation */
+.sa-tree{display:flex;flex-direction:column;gap:0;max-height:240px;overflow-y:auto;border:1px solid var(--parch3);border-radius:var(--r);background:var(--parch)}
+.sa-tnode{}
+.sa-tnode-row,.sa-tleaf{
+  display:flex;align-items:center;gap:.3rem;
+  padding:.24rem .5rem;cursor:pointer;transition:background .1s;
+  border-bottom:1px solid var(--parch3)
 }
-.sa-date-inputs input:focus{border-color:var(--rust)}
-.sa-histo{
-  height:40px;display:flex;align-items:flex-end;gap:1px;
-  background:var(--parch);border:1px solid var(--parch3);border-radius:var(--r);
-  padding:3px 3px 0;overflow:hidden;margin-bottom:.3rem
-}
-.sa-hbar{
-  flex:1;background:var(--rust3);border-radius:1px 1px 0 0;
-  cursor:pointer;transition:background .12s;position:relative
-}
-.sa-hbar.on{background:var(--rust)}
-.sa-hbar:hover{background:var(--rust2)}
-.sa-histo-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.58rem;color:var(--ink3)}
+.sa-tnode-row:last-child,.sa-tleaf:last-child{border-bottom:none}
+.sa-tnode-row:hover,.sa-tleaf:hover{background:var(--rust3)}
+.sa-tnode-row.on{background:var(--rust);color:var(--parch)}
+.sa-tnode-row.on .sa-tcnt{color:var(--rust3)}
+.sa-tleaf.on{background:var(--rust2);color:var(--parch)}
+.sa-tleaf.on .sa-tcnt{color:var(--rust3)}
+.sa-ttoggle{font-size:.55rem;color:var(--ink3);flex-shrink:0;width:.85rem;text-align:center;transition:transform .15s}
+.sa-tnode-row.on .sa-ttoggle{color:var(--parch)}
+.sa-tlabel{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem}
+.sa-tleaf .sa-tlabel{font-size:.78rem;padding-left:.2rem;color:var(--ink2)}
+.sa-tleaf.on .sa-tlabel{color:var(--parch)}
+.sa-tcnt{font-family:var(--mono);font-size:.58rem;color:var(--ink3);flex-shrink:0}
+.sa-tchildren{background:var(--parch2)}
 
 /* Autocomplete */
 .sa-ac{position:relative;margin-bottom:.4rem}
@@ -255,13 +255,8 @@ body{font-family:var(--ff);background:var(--parch);color:var(--ink);line-height:
     </div>
 
     <div class="sa-filter">
-      <div class="sa-flabel">Période</div>
-      <div class="sa-date-inputs">
-        <input type="number" id="sa-dmin" placeholder="Début">
-        <input type="number" id="sa-dmax" placeholder="Fin">
-      </div>
-      <div class="sa-histo" id="sa-histo"></div>
-      <div class="sa-histo-labels"><span id="hl-min">—</span><span id="hl-max">—</span></div>
+      <div class="sa-flabel">Navigation</div>
+      <div class="sa-tree" id="sa-tree"></div>
     </div>
 
     <div class="sa-filter">
@@ -354,10 +349,11 @@ const URLS = {
 const PER = 25;
 let DB  = {};
 const S = {
-  txt:'', dmin:null, dmax:null,
+  txt:'', tree:null,
   geo:new Set(), sub:new Set(), per:new Set(), lvl:new Set(),
   sort:'rel', page:1
 };
+const EXPANDED = new Set();
 
 const LLABELS = {file:'Dossier',item:'Article',series:'Série',subfonds:'Sous-fonds'};
 
@@ -388,19 +384,11 @@ async function boot() {
 
 /* ── Init UI ─────────────────────────────────────────────────── */
 function init() {
-  buildHisto();
+  buildTreeData();
+  renderTree();
   buildLevels();
 
-  const dmin = Math.max(DB.dates.min_year, 1000);
-  const dmax = DB.dates.max_year;
-  el('hl-min').textContent = dmin;
-  el('hl-max').textContent = dmax;
-  el('sa-dmin').placeholder = dmin;
-  el('sa-dmax').placeholder = dmax;
-
   on('sa-txt',   'input',  e => { S.txt = e.target.value.trim().toLowerCase(); S.page=1; run(); });
-  on('sa-dmin',  'input',  () => { S.dmin = +el('sa-dmin').value||null; S.dmax = +el('sa-dmax').value||null; S.page=1; hilight(); run(); });
-  on('sa-dmax',  'input',  () => { S.dmin = +el('sa-dmin').value||null; S.dmax = +el('sa-dmax').value||null; S.page=1; hilight(); run(); });
   on('sa-sort',  'change', e => { S.sort = e.target.value; S.page=1; run(); });
   on('sa-reset', 'click',  reset);
 
@@ -409,30 +397,85 @@ function init() {
   ac('sa-per-in','sa-per-dd', DB.persons,   'per','sa-per-tags');
 }
 
-/* ── Histogram ───────────────────────────────────────────────── */
-function buildHisto() {
-  const dist    = DB.dates.distribution;
-  const decades = Object.keys(dist).map(Number).filter(d=>d>=1000).sort((a,b)=>a-b);
-  const maxv    = Math.max(...decades.map(d=>dist[String(d)]));
-  const c       = el('sa-histo');
-  c.innerHTML   = '';
-  decades.forEach(d => {
-    const h  = Math.max(3, Math.round((dist[String(d)]/maxv)*36));
-    const b  = mk('div','sa-hbar on');
-    b.style.height = h+'px';
-    b.title  = `${d}s : ${dist[String(d)]} doc.`;
-    b.dataset.d = d;
-    b.addEventListener('click', () => {
-      el('sa-dmin').value = d; el('sa-dmax').value = d+9;
-      S.dmin=d; S.dmax=d+9; S.page=1; hilight(); run();
-    });
-    c.appendChild(b);
-  });
+/* ── Tree navigation ─────────────────────────────────────────── */
+let TREE_DATA = {};
+
+function buildTreeData() {
+  const series = {};
+  for (const r of DB.archive) {
+    if (!series[r.serie_id]) {
+      series[r.serie_id] = { id: r.serie_id, title: r.serie_title, total: 0, ch: {} };
+    }
+    series[r.serie_id].total++;
+    if (r.depth >= 1 && r.path.length >= 2) {
+      const cid = r.path[1];
+      if (!series[r.serie_id].ch[cid]) series[r.serie_id].ch[cid] = { id: cid, title: cid, count: 0 };
+      series[r.serie_id].ch[cid].count++;
+    }
+    if (r.depth === 1) {
+      const s = series[r.serie_id];
+      if (s && s.ch[r.id]) s.ch[r.id].title = r.unittitle || r.unitid || r.id;
+    }
+  }
+  TREE_DATA = series;
 }
-function hilight() {
-  document.querySelectorAll('.sa-hbar').forEach(b => {
-    const d = +b.dataset.d;
-    b.classList.toggle('on', (!S.dmin||d+9>=S.dmin) && (!S.dmax||d<=S.dmax));
+
+function renderTree() {
+  const container = el('sa-tree');
+  container.innerHTML = '';
+  Object.values(TREE_DATA).forEach(serie => {
+    const children = Object.values(serie.ch).sort((a,b) => b.count - a.count);
+    const hasKids   = children.length > 0;
+    const isOn      = S.tree === serie.id;
+    const isExp     = EXPANDED.has(serie.id);
+
+    const node    = mk('div', 'sa-tnode');
+    const row     = mk('div', 'sa-tnode-row' + (isOn ? ' on' : ''));
+    const toggle  = mk('span', 'sa-ttoggle');
+    toggle.textContent = hasKids ? (isExp ? '▼' : '▶') : '';
+    const label   = mk('span', 'sa-tlabel');
+    label.textContent = sh(serie.title, 38);
+    label.title = serie.title;
+    const cnt     = mk('span', 'sa-tcnt');
+    cnt.textContent = serie.total.toLocaleString('fr');
+
+    row.appendChild(toggle); row.appendChild(label); row.appendChild(cnt);
+    node.appendChild(row);
+
+    const childList = mk('div', 'sa-tchildren');
+    childList.style.display = isExp ? '' : 'none';
+
+    if (hasKids) {
+      children.forEach(ch => {
+        const leaf = mk('div', 'sa-tleaf' + (S.tree === ch.id ? ' on' : ''));
+        const ll   = mk('span', 'sa-tlabel');
+        ll.textContent = sh(ch.title || ch.id, 34);
+        ll.title = ch.title || ch.id;
+        const lc   = mk('span', 'sa-tcnt');
+        lc.textContent = ch.count.toLocaleString('fr');
+        leaf.appendChild(ll); leaf.appendChild(lc);
+        leaf.addEventListener('click', e => {
+          e.stopPropagation();
+          S.tree = S.tree === ch.id ? null : ch.id;
+          S.page = 1; renderTree(); run();
+        });
+        childList.appendChild(leaf);
+      });
+
+      toggle.addEventListener('click', e => {
+        e.stopPropagation();
+        EXPANDED.has(serie.id) ? EXPANDED.delete(serie.id) : EXPANDED.add(serie.id);
+        renderTree();
+      });
+    }
+
+    row.addEventListener('click', () => {
+      S.tree = S.tree === serie.id ? null : serie.id;
+      S.page = 1; renderTree(); run();
+    });
+
+    node.appendChild(childList);
+    container.appendChild(node);
   });
 }
 
@@ -503,24 +546,22 @@ function renderTags(key, tagsId) {
 
 /* ── Reset ───────────────────────────────────────────────────── */
 function reset() {
-  S.txt=''; S.dmin=null; S.dmax=null;
+  S.txt=''; S.tree=null;
   S.geo.clear(); S.sub.clear(); S.per.clear(); S.lvl.clear();
   S.sort='rel'; S.page=1;
-  el('sa-txt').value=''; el('sa-dmin').value=''; el('sa-dmax').value='';
+  el('sa-txt').value='';
   ['sa-geo-in','sa-sub-in','sa-per-in'].forEach(id=>el(id).value='');
   ['sa-geo-tags','sa-sub-tags','sa-per-tags'].forEach(id=>{ el(id).innerHTML=''; });
   document.querySelectorAll('.sa-chip').forEach(c=>c.classList.remove('on'));
-  document.querySelectorAll('.sa-hbar').forEach(b=>b.classList.add('on'));
   el('sa-sort').value='rel';
-  run();
+  renderTree(); run();
 }
 
 /* ── Filter + sort ───────────────────────────────────────────── */
 function run() {
   let res = DB.archive;
-  if (S.txt) res = res.filter(r => r.search_text.includes(S.txt));
-  if (S.dmin) res = res.filter(r => !r.date_end   || r.date_end   >= S.dmin);
-  if (S.dmax) res = res.filter(r => !r.date_start || r.date_start <= S.dmax);
+  if (S.txt)  res = res.filter(r => r.search_text.includes(S.txt));
+  if (S.tree) { const tid=S.tree; res = res.filter(r => r.path.includes(tid)); }
   if (S.geo.size) { const s=S.geo; res = res.filter(r=>r.geonames.some(g=>s.has(g))); }
   if (S.sub.size) { const s=S.sub; res = res.filter(r=>r.subjects.some(x=>s.has(x))); }
   if (S.per.size) { const s=S.per; res = res.filter(r=>r.persons.some(p=>s.has(p))); }
